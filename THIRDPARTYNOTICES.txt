@@ -1,0 +1,39 @@
+
+THIRD-PARTY SOFTWARE NOTICES
+
+This project incorporates components from the following third-party software:
+
+1. PyMuPDF
+   - License: AGPL-3.0
+   - Copyright Artifex Software, Inc.
+
+2. Pillow
+   - License: HPND License (History of the Python Imaging Library)
+
+3. img2pdf
+   - License: LGPL-3.0
+
+4. python-pptx
+   - License: MIT
+
+5. Flask
+   - License: BSD-3-Clause
+
+6. Flask-CORS
+   - License: MIT
+
+7. Electron
+   - License: MIT
+
+8. React
+   - License: MIT
+
+9. Lucide React
+   - License: ISC
+
+10. DnD Kit
+    - License: MIT
+
+-------------------------------------------------------------------
+This software is distributed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+Refer to the LICENSE file for the full text of the license.

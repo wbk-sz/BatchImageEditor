@@ -1,0 +1,78 @@
+{
+  "name": "batch-image-editor",
+  "version": "1.0.0",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "npx rimraf backend.port && concurrently \"npm run backend:start\" \"npm run electron:dev\"",
+    "build": "tsc && vite build && electron-builder",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"npm run electron:build-main -- --watch\" \"wait-on tcp:5173 && set ELECTRON_RUN_AS_NODE=&& set NODE_ENV=development&& electron .\"",
+    "electron:build": "npm run electron:build-main && vite build && electron-builder",
+    "electron:build-main": "npx esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node18 --outdir=dist-electron --external:electron --format=cjs",
+    "backend:install": "pip install -r backend/requirements.txt",
+    "backend:start": "python backend/app.py",
+    "build:backend": "cd backend && pyinstaller build_backend.spec --noconfirm",
+    "dist": "npm run electron:build",
+    "build:zip": "powershell -ExecutionPolicy Bypass -File build_distribution.ps1"
+  },
+  "build": {
+    "appId": "com.example.batchimageeditor",
+    "productName": "Batch Image Editor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/python_embed",
+        "to": "backend/python_embed"
+      },
+      {
+        "from": "backend/app.py",
+        "to": "backend/app.py"
+      }
+    ],
+    "target": [
+      {
+        "target": "zip",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "resources/BatchImageEditor_icon.ico",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/BatchImageEditor_icon.ico",
+      "uninstallerIcon": "resources/BatchImageEditor_icon.ico"
+    }
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "lucide-react": "^0.564.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^8.0.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.7.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0",
+    "wait-on": "^7.0.0"
+  }
+}

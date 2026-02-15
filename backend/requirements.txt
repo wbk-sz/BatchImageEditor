@@ -1,0 +1,7 @@
+flask
+flask-cors
+pillow
+img2pdf
+python-pptx
+pymupdf
+pyinstaller
