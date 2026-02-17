@@ -1,9 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu, MenuItemConstructorOptions, shell } = require('electron');
 import path from 'path';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, exec } from 'child_process';
 import { pathToFileURL } from 'url';
 import fs from 'fs';
 import os from 'os';
+import util from 'util';
+
+const execAsync = util.promisify(exec);
 
 // Setup file logging for Electron
 let logFile: string | null = null;
@@ -128,6 +131,17 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+
+    // Intercept close event to ensure backend stops
+    mainWindow.on('close', async (e) => {
+        if (!isQuitting && backendProcess && !isBackendStopping) {
+            e.preventDefault();
+            log("Window close intercepted, stopping backend...");
+            await stopBackend();
+            log("Backend stopped, forcing exit...");
+            app.exit(0);
+        }
+    });
 }
 
 const startBackend = () => {
@@ -224,13 +238,78 @@ const startBackend = () => {
     }
 };
 
-const stopBackend = () => {
-    if (backendProcess) {
-        backendProcess.kill();
-        backendProcess = null;
-        backendPort = null;
+let isBackendStopping = false;
+
+const stopBackend = async () => {
+    if (!backendProcess || isBackendStopping) return;
+    isBackendStopping = true;
+    log("Stopping backend...");
+
+    // 1. Try graceful shutdown via API
+    if (backendPort) {
+        try {
+            const http = require('http');
+            const options = {
+                hostname: '127.0.0.1',
+                port: backendPort,
+                path: '/shutdown',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            await new Promise<void>((resolve) => {
+                const req = http.request(options, (res: any) => {
+                    log(`Shutdown request status: ${res.statusCode}`);
+                    resolve();
+                });
+
+                req.on('error', (e: any) => {
+                    log(`Shutdown request failed: ${e.message}`);
+                    resolve();
+                });
+
+                // Set a timeout for the request itself
+                req.setTimeout(1000, () => {
+                    log("Shutdown request timed out");
+                    req.destroy();
+                    resolve();
+                });
+
+                req.end();
+            });
+        } catch (e: any) {
+            log(`Error processing shutdown: ${e.message}`);
+        }
     }
-};
+
+    // 2. Force kill after a short delay (now awaited) to ensure it's gone
+    await new Promise<void>(async (resolve) => {
+        // Wait a bit for graceful shutdown to have a chance
+        await new Promise(r => setTimeout(r, 500));
+
+        if (backendProcess) {
+            try {
+                if (process.platform === 'win32') {
+                    // Force kill process tree on Windows AND WAIT FOR IT
+                    log("Executing taskkill...");
+                    await execAsync(`taskkill /pid ${backendProcess.pid} /f /t`);
+                    log("Taskkill executed successfully");
+                } else {
+                    backendProcess.kill();
+                    log("Sent SIGTERM to backend");
+                }
+            } catch (e: any) {
+                // Ignore error if process not found (already gone)
+                log(`Kill result: ${e.message}`);
+            }
+            backendProcess = null;
+            backendPort = null;
+        }
+        resolve();
+    });
+}
 
 app.whenReady().then(() => {
     log("App ready, creating menu...");
@@ -358,11 +437,16 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        stopBackend();
         app.quit();
     }
 });
 
-app.on('before-quit', () => {
-    stopBackend();
+let isQuitting = false;
+app.on('before-quit', async (event) => {
+    if (!isQuitting) {
+        event.preventDefault();
+        isQuitting = true;
+        await stopBackend();
+        app.quit(); // This triggers before-quit again, but isQuitting guards it
+    }
 });

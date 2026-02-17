@@ -429,6 +429,24 @@ def extract_pdf_pages():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    logging.info("Shutdown requested. Exiting immediately.")
+    # Run from a thread to return the response first?
+    # Actually, flask might not send response if we exit too fast.
+    # Start a thread to kill self in 100ms
+    import threading
+    def kill_self():
+        import time
+        time.sleep(0.1)
+        logging.info("Calling os._exit(0)")
+        os._exit(0)
+    
+    thread = threading.Thread(target=kill_self)
+    thread.start()
+    
+    return jsonify({"status": "shutdown_initiated"}), 200
+
 if __name__ == '__main__':
     # Dynamic Port Selection with Retry Logic
     import socket
