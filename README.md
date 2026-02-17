@@ -15,6 +15,9 @@ A powerful and user-friendly desktop application for bulk image editing and conv
 - **Aspect Ratio**: Change the aspect ratio based on the selected mode.
 - **Crop Adjustment**: Adjust the crop position for each file in the preview when changing the aspect ratio.
 
+<img src="resources/001_readme_1.jpeg" width="400"><img src="resources/002_readme_2.jpeg" width="300">
+
+
 ## Installation
 
 You can download the latest release from the [Releases](https://github.com/wbk-sz/BatchImageEditor/releases) page.
@@ -86,3 +89,4 @@ This project uses the following third-party libraries:
 - **React**: Licensed under MIT.
 
 See [THIRDPARTYNOTICES.txt](THIRDPARTYNOTICES.txt) for full license details of third-party components.
+
