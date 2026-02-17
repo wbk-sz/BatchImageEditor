@@ -12,24 +12,14 @@ function App() {
     const [resizeWidth, setResizeWidth] = useState<number | ''>('')
     const [isProcessing, setIsProcessing] = useState(false)
     const [processResult, setProcessResult] = useState<string | null>(null)
-
-    const handleSelectOutputDir = async () => {
-        const dir = await window.electron.selectDirectory()
-        if (dir) {
-            setOutputDir(dir)
-        }
-    }
-
+    const [outputDir, setOutputDir] = useState<string | null>(null)
     const [aspectRatio, setAspectRatio] = useState('Original')
-    const [resizeMode, setResizeMode] = useState<'Original' | 'Cover' | 'Contain' | 'Stretch'>('Original');
-    const [outputDir, setOutputDir] = useState<string | null>(null);
-
-    // Preview Modal State
-    const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-    const [cropPositions, setCropPositions] = useState<Record<string, { x: number, y: number }>>({});
-
-    // Dynamic API URL state
-    const [apiBaseUrl, setApiBaseUrl] = useState<string | null>(null);
+    const [resizeMode, setResizeMode] = useState<'Original' | 'Cover' | 'Contain' | 'Stretch'>('Original')
+    const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+    const [cropPositions, setCropPositions] = useState<Record<string, { x: number, y: number }>>({})
+    const [apiBaseUrl, setApiBaseUrl] = useState<string | null>(null)
+    // New state for loading overlay when adding files
+    const [isAddingFiles, setIsAddingFiles] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -74,8 +64,6 @@ function App() {
             // Failure / Retry logic
             if (isMounted) {
                 if (retryCount < 10) {
-                    // Exponential backoff or simple delay? Simple is fine.
-                    // Wait 2 seconds before retry
                     setTimeout(() => initBackend(retryCount + 1), 2000);
                 } else {
                     setBackendStatus('Connection failed. Please restart app.');
@@ -83,18 +71,71 @@ function App() {
             }
         };
 
-        // Output dir check (unrelated but kept)
-        // ...
-
         initBackend();
 
         return () => { isMounted = false; };
     }, []);
 
     const handleSelectImages = async () => {
-        const selectedImages = await window.electron.selectImages()
-        setImages(prev => Array.from(new Set([...prev, ...selectedImages])))
-        setProcessResult(null)
+        setIsAddingFiles(true);
+        try {
+            const selectedImages = await window.electron.selectImages()
+            if (selectedImages.length === 0) return;
+
+            console.log('Selected images:', selectedImages);
+            const newPaths: string[] = [];
+            const pdfPathsToProcess: string[] = [];
+
+            // Filter out PDFs for special processing
+            for (const filePath of selectedImages) {
+                if (filePath.toLowerCase().endsWith('.pdf')) {
+                    pdfPathsToProcess.push(filePath);
+                } else {
+                    newPaths.push(filePath);
+                }
+            }
+
+            // Add normal images immediately
+            if (newPaths.length > 0) {
+                setImages(prev => Array.from(new Set([...prev, ...newPaths])));
+            }
+
+            // Process PDFs
+            if (pdfPathsToProcess.length > 0) {
+                if (!apiBaseUrl) {
+                    console.error("Backend not connected, cannot process PDF");
+                    // Fallback: just add the PDF path (will show error icon or just generic file)
+                    setImages(prev => Array.from(new Set([...prev, ...pdfPathsToProcess])));
+                    setProcessResult('Warning: Backend not connected. PDF thumbnails may not generate.');
+                    return;
+                }
+
+                for (const pdfPath of pdfPathsToProcess) {
+                    try {
+                        const response = await fetch(`${apiBaseUrl}/extract-pdf-pages`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pdf_path: pdfPath })
+                        });
+
+                        const data = await response.json();
+                        if (response.ok && data.images) {
+                            console.log('Extracted PDF pages (select):', data.images);
+                            setImages(prev => Array.from(new Set([...prev, ...data.images])));
+                        } else {
+                            console.error('Failed to extract PDF pages:', data.error);
+                            // Fallback to original path
+                            setImages(prev => Array.from(new Set([...prev, pdfPath])));
+                        }
+                    } catch (e) {
+                        console.error('Error calling extract-pdf-pages:', e);
+                        setImages(prev => Array.from(new Set([...prev, pdfPath])));
+                    }
+                }
+            }
+        } finally {
+            setIsAddingFiles(false);
+        }
     }
 
     const handleDrop = async (acceptedFiles: File[], event?: any) => {
@@ -110,7 +151,6 @@ function App() {
             }
 
             // Iterate and extract paths
-            // Note: filesToProcess might be a FileList (array-like), so we convert or iterate accordingly
             const fileList = Array.isArray(filesToProcess) ? filesToProcess : Array.from(filesToProcess);
 
             for (const file of fileList) {
@@ -153,14 +193,11 @@ function App() {
                 }
 
                 // Normal image file processing
-                // In Electron Renderer Main World, 'path' property often exists on the File object directly.
                 let filePath = (file as any).path;
 
                 if (!filePath) {
                     console.warn(`File ${file.name} is missing 'path' property on the object. Trying direct webUtils...`);
-
                     try {
-                        // Since nodeIntegration is true, we can try to require electron directly
                         // @ts-ignore
                         if (window.require) {
                             // @ts-ignore
@@ -209,6 +246,13 @@ function App() {
         }
     }
 
+    const handleSelectOutputDir = async () => {
+        const dir = await window.electron.selectDirectory()
+        if (dir) {
+            setOutputDir(dir)
+        }
+    }
+
     const handleRemoveImage = (path: string) => {
         setImages(prev => prev.filter(p => p !== path));
         // Also remove crop position if exists
@@ -240,7 +284,7 @@ function App() {
             const payload: ProcessPayload = {
                 images: images,
                 output_dir: outputDir,
-                output_format: targetFormat, // Using existing targetFormat for output_format
+                output_format: targetFormat,
                 aspect_ratio: aspectRatio,
                 resize_mode: resizeMode,
                 crop_positions: cropPositions,
@@ -306,11 +350,21 @@ function App() {
         } finally {
             setIsProcessing(false)
         }
-        // Refactored handleProcess below to handle finally correctly
     }
 
     return (
-        <div className="h-screen w-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+        <div className="h-screen w-screen flex flex-col bg-gray-900 text-white overflow-hidden relative">
+            {/* Global Loading Overlay */}
+            {isAddingFiles && (
+                <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-gray-800 p-6 rounded-xl shadow-2xl flex flex-col items-center gap-4 border border-gray-700">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+                        <p className="text-lg font-medium text-blue-400">Processing files...</p>
+                        <p className="text-sm text-gray-400">Extracting pages from PDF/PPTX</p>
+                    </div>
+                </div>
+            )}
+
             <header className="px-6 py-4 bg-gray-800 shadow-md flex justify-between items-center z-10 border-b border-gray-700">
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
@@ -365,7 +419,8 @@ function App() {
 
                 <div className="text-xs font-mono text-gray-500">
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${backendStatus.includes('available') ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        {/* Status Checker Fixed: using toLowerCase() to match 'available' */}
+                        <div className={`w-2 h-2 rounded-full ${backendStatus.toLowerCase().includes('available') ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         {backendStatus}
                     </div>
                 </div>

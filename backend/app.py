@@ -187,12 +187,11 @@ def process_images():
                  
                  directory, filename = os.path.split(img_path)
                  if output_dir: directory = output_dir
-                 name, ext = os.path.splitext(filename)
                  
                  # Construct 3-digit index prefix
                  index_prefix = f"{i+1:03d}"
                  
-                 new_filename = f"{index_prefix}_{name}.{save_format.lower()}"
+                 new_filename = f"{index_prefix}.{save_format.lower()}"
                  new_path = os.path.join(directory, new_filename)
                  
                  if os.path.exists(new_path):
@@ -223,11 +222,10 @@ def process_images():
                 if output_dir:
                     directory = output_dir
                 
-                name, ext = os.path.splitext(filename)
                 # Construct 3-digit index prefix
                 index_prefix = f"{i+1:03d}"
                 
-                new_filename = f"{index_prefix}_{name}.{save_format.lower()}"
+                new_filename = f"{index_prefix}.{save_format.lower()}"
                 new_path = os.path.join(directory, new_filename)
                 print(f"DEBUG: Saving to {new_path}")
 
@@ -479,7 +477,11 @@ if __name__ == '__main__':
 
             # Attempt to run
             # Note: 127.0.0.1 is cleaner, but localhost is usually fine.
-            app.run(host='127.0.0.1', port=port, debug=not is_frozen)
+            # Check FLASK_DEBUG env var (default to 1 in dev, 0 in frozen)
+            default_debug = "0" if is_frozen else "1"
+            debug_mode = os.environ.get("FLASK_DEBUG", default_debug) == "1"
+            
+            app.run(host='127.0.0.1', port=port, debug=debug_mode)
             
             # If app.run returns, it means server stopped gracefully.
             break

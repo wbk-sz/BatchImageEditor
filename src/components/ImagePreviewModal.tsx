@@ -147,10 +147,10 @@ export function ImagePreviewModal({
     // Calculate aspect ratio style
     const getAspectRatioStyle = () => {
         if (aspectRatio === 'Original') return {
-            maxWidth: isFullScreen ? '100vw' : '80vw',
-            maxHeight: isFullScreen ? '100vh' : '80vh',
-            width: 'auto',
-            height: 'auto'
+            // Remove max constraints from container, let content (img) define size
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
         };
 
         const [w, h] = aspectRatio.split(':').map(Number);
@@ -158,9 +158,6 @@ export function ImagePreviewModal({
         const maxHeightVal = isFullScreen ? '100vh' : '80vh';
 
         // Constrain width and height based on Aspect Ratio and Max Viewport
-        // We want to fit the box into the max viewport while maintaining AR.
-        // width = min(MAX_W, MAX_H * AR)
-        // height = min(MAX_H, MAX_W / AR)
         const ar = w / h;
 
         return {
@@ -269,8 +266,17 @@ export function ImagePreviewModal({
                     alt="Preview"
                     className="block pointer-events-none" // Events handled by container
                     style={{
-                        width: '100%',
-                        height: '100%',
+                        width: aspectRatio === 'Original' ? 'auto' : '100%',
+                        height: aspectRatio === 'Original' ? 'auto' : '100%',
+
+                        maxWidth: aspectRatio === 'Original'
+                            ? (isFullScreen ? '100vw' : '80vw') // Original mode constraints
+                            : '100%',
+
+                        maxHeight: aspectRatio === 'Original'
+                            ? (isFullScreen ? '100vh' : '80vh') // Original mode constraints
+                            : '100%',
+
                         objectFit: aspectRatio !== 'Original' ? getObjectFit() as any : 'contain',
                         objectPosition: `${currentPos.x}% ${currentPos.y}%`
                     }}

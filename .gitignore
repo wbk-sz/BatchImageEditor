@@ -1,0 +1,64 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv
+venv/
+ENV/
+env/
+PYTHON_EMBED_DIR/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Electron & Builder
+dist-electron/
+dist-final/
+release/
+*.exe
+*.zip
+*.dmg
+*.pkg
+*.app
+
+# VS Code
+.vscode/
+
+# Local Environment & Logs
+.env
+.DS_Store
+*.log
+backend.port
+output.txt
+startup_debug.txt
+electron_debug.txt
+batch_image_editor_debug.log
+
+# Temporary / Testing
+test_output/
+*_processed.*
+test.exe
+test.nsi

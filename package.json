@@ -36,21 +36,10 @@
         "to": "backend/app.py"
       }
     ],
-    "target": [
-      {
-        "target": "zip",
-        "arch": [
-          "x64"
-        ]
-      }
-    ],
-    "icon": "resources/BatchImageEditor_icon.ico",
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "resources/BatchImageEditor_icon.ico",
-      "uninstallerIcon": "resources/BatchImageEditor_icon.ico"
-    }
+    "win": {
+      "target": "zip"
+    },
+    "icon": "resources/BatchImageEditor_icon.ico"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -15,6 +15,12 @@ if ($LASTEXITCODE -ne 0) { throw "npm run dist failed" }
 Write-Host "Restructuring output..."
 $releaseDir = "release"
 $unpackedDir = Join-Path $releaseDir "win-unpacked"
+if (-not (Test-Path $unpackedDir)) {
+    $unpackedDir = Join-Path $releaseDir "win-arm64-unpacked"
+}
+if (-not (Test-Path $unpackedDir)) {
+    throw "Could not find unpacked directory. Checked win-unpacked and win-arm64-unpacked."
+}
 $finalDir = Join-Path $releaseDir "BatchImageEditor"
 $binDir = Join-Path $finalDir "bin"
 

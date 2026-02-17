@@ -2,11 +2,11 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "1. Building Electron App... (SKIPPED - Manual Patching)"
-# cmd /c npm run electron:build
-# if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+Write-Host "1. Building Electron App..."
+cmd /c npm run electron:build -- --x64 --dir
+if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 
-$releaseDir = "release/win-arm64-unpacked"
+$releaseDir = "release/win-unpacked"
 $distDir = "dist-final"
 $appName = "BatchImageEditor"
 $targetDir = "$distDir/$appName"
