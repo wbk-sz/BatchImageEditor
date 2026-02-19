@@ -8,7 +8,7 @@ if (Test-Path "release") { Remove-Item "release" -Recurse -Force }
 
 # 2. Run npm dist (Builds backend and electron)
 Write-Host "Running npm run dist..."
-cmd /c "npm run dist"
+cmd /c "npm run dist -- --x64"
 if ($LASTEXITCODE -ne 0) { throw "npm run dist failed" }
 
 # 3. Restructure Output
@@ -16,10 +16,7 @@ Write-Host "Restructuring output..."
 $releaseDir = "release"
 $unpackedDir = Join-Path $releaseDir "win-unpacked"
 if (-not (Test-Path $unpackedDir)) {
-    $unpackedDir = Join-Path $releaseDir "win-arm64-unpacked"
-}
-if (-not (Test-Path $unpackedDir)) {
-    throw "Could not find unpacked directory. Checked win-unpacked and win-arm64-unpacked."
+    throw "Could not find unpacked directory at $unpackedDir. Ensure x64 build was successful."
 }
 $finalDir = Join-Path $releaseDir "BatchImageEditor"
 $binDir = Join-Path $finalDir "bin"

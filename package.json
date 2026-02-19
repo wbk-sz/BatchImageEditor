@@ -11,7 +11,7 @@
     "electron:build-main": "npx esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node18 --outdir=dist-electron --external:electron --format=cjs",
     "backend:install": "pip install -r backend/requirements.txt",
     "backend:start": "python backend/app.py",
-    "build:backend": "cd backend && pyinstaller build_backend.spec --noconfirm",
+    "build:backend": "..\\.venv\\Scripts\\python.exe -m PyInstaller build_backend.spec --noconfirm",
     "dist": "npm run electron:build",
     "build:zip": "powershell -ExecutionPolicy Bypass -File build_distribution.ps1"
   },
@@ -37,7 +37,12 @@
       }
     ],
     "win": {
-      "target": "zip"
+      "target": {
+        "target": "zip",
+        "arch": [
+          "x64"
+        ]
+      }
     },
     "icon": "resources/BatchImageEditor_icon.ico"
   },
