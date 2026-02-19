@@ -38,8 +38,10 @@ if (-not (Test-Path $cscPath)) {
 $launcherSrc = "launcher.cs"
 $launcherExe = Join-Path $finalDir "Batch Image Editor.exe"
 
-# Compile as Winexe (no console window)
-& $cscPath /target:winexe /out:"$launcherExe" $launcherSrc
+# Compile as Winexe (no console window) with icon
+$resourcesDir = Join-Path $PSScriptRoot "resources"
+$iconPath = Join-Path $resourcesDir "BatchImageEditor_icon.ico"
+& $cscPath /target:winexe /win32icon:"$iconPath" /out:"$launcherExe" $launcherSrc
 
 if (-not (Test-Path $launcherExe)) { throw "Launcher compilation failed" }
 
